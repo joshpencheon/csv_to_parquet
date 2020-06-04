@@ -12,6 +12,6 @@ docker build -t csv_to_parquet .
 ```
 Then, put `.csv` files in `data/in/`, and run:
 ```
-docker run -it -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parquet:latest
+docker run -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parquet:latest
 ```
 Output `.parquet` files will appear in `data/out/`.
