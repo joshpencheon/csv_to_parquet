@@ -34,6 +34,8 @@ Use an imagine with Hadoop/Scoop already set up, mounting a destination director
 $ docker run -v /path/to/jdbc/:/jdbc -v /path/to/dest/:/parquet_out/ -it dvoros/sqoop:latest
 ```
 
+## Postgres
+
 Within that container, point Scoop at the source DB. Use of `--direct` would require e.g. a PG install within the container.
 
 ```
@@ -63,4 +65,23 @@ docker run -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parque
 
 # This might be better doing the concatination as a reduction over the files, depending on Pandas behaviour...
 >>> df = pd.concat([pd.read_parquet(f) for f in glob.glob('/data/out/<table_name>/*.parquet')], ignore_index=True)
+```
+
+## Oracle
+
+Similar to Postgres above, but some oddities with schemas means things only seem to work when specifying query and parallel/serial options to Sqoop:
+
+```
+# sqoop import --as-parquetfile --connect jdbc:oracle:thin:@<host>:<port>:<SID> --query 'select * from <TABLE_NAME_UPCASE> where $CONDITIONS' --target-dir '/user/root/<table_name>' -m 1 --username <user> --password <password>
+[...]
+```
+
+## Issues
+
+It would appear that there's a [known issue](https://community.cloudera.com/t5/Support-Questions/SQOOP-IMPORT-map-column-hive-ignored/td-p/45369/page/2) with dates/times and outputting to parquet; they get imported as millisecond-since-epoch values:
+
+```
+$ parquet-tools schema ed4f9bbf-7dbf-495a-afde-484b048d0737.parquet | grep 'DATE'
+  optional int64 STARTDATE;
+  optional int64 ENDDATE;
 ```
