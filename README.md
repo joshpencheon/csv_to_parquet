@@ -20,14 +20,47 @@ Output `.parquet` files will appear in `data/out/`.
 
 # Direct to Parquet
 
+You need JDBC dirvers available:
+
 ```
 $ ls /path/to/jdbc/
 ojdbc6.jar
 postgresql-42.2.13.jar
+```
 
-$ docker run -v /path/to/jdbc/:/jdbc -v path/to/dest/:/parquet_out/ -it dvoros/sqoop:latest
+Use an imagine with Hadoop/Scoop already set up, mounting a destination directory:
+
+```
+$ docker run -v /path/to/jdbc/:/jdbc -v /path/to/dest/:/parquet_out/ -it dvoros/sqoop:latest
+```
+
+Within that container, point Scoop at the source DB. Use of `--direct` would require e.g. a PG install within the container.
+
+```
 # sqoop import --as-parquetfile --connect jdbc:postgresql://host.docker.internal:<port>/<db_name> --table <table_name> --username <user> --password <password> # careful!
 [...]
+```
+
+Output can then be pulled out of the container:
+
+```
 # hdfs dfs -ls -R /user/root/<table_name>
 [...]
-# hdfs dfs -copyToLocal /user/root/<table_name>/*.parquet /parquet_out/ # crude, could FUSE mount...
+# hdfs dfs -copyToLocal /user/root/<table_name>/*.parquet /parquet_out/<table_name>/ # crude, could FUSE mount...
+```
+
+...and checked over:
+
+```
+docker run -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parquet:latest python
+```
+
+```
+>>> import pandas as pd
+>>> import pyarrow as pa
+>>> import pyarrow.parquet as pq
+>>> import glob
+
+# This might be better doing the concatination as a reduction over the files, depending on Pandas behaviour...
+>>> df = pd.concat([pd.read_parquet(f) for f in glob.glob('/data/out/<table_name>/*.parquet')], ignore_index=True)
+```
