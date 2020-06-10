@@ -120,7 +120,7 @@ $ sqoop import --map-column-java STARTDATE=String ...
 
 I can't find a way of modifying the produce Parquet files' metadata to include the logical type.
 
-### Repair of date
+### Repair of epoch dates
 
 It's possible to use Pandas to re-emit Parquet with a tweaked schema. For example:
 
@@ -145,3 +145,5 @@ pd.read_parquet('/data/out/zicd_d/fixed.parquet').dtypes['STARTDATE':'ENDDATE']
 STARTDATE    datetime64[ns]
 ENDDATE             float64
 ```
+
+In practice, one might want to iterate over emitted parquet chunks, and perform the same repair on each.
