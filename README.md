@@ -111,4 +111,9 @@ It's possible to perform this conversion after the fact, but that's not ideal:
 >>> df.STARTDATE = pd.to_datetime(df.STARTDATE, unit='ms')
 ```
 
+Equally, it's possible to override Sqoop's type map to a different primitive type, e.g. `String`:
+```
+$ sqoop import --map-column-java STARTDATE=String ...
+```
+
 I can't find a way of modifying the produce Parquet files' metadata to include the logical type.
