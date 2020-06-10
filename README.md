@@ -85,3 +85,30 @@ $ parquet-tools schema ed4f9bbf-7dbf-495a-afde-484b048d0737.parquet | grep 'DATE
   optional int64 STARTDATE;
   optional int64 ENDDATE;
 ```
+
+As far as I can tell, this is a limitation of the use of Avro by Sqoop for producing the parquet, and not correctly adding `LogicalType` annotations, which is how Parquet records a date being stored as an integer for example.
+
+```
+$ parquet-tools meta ed4f9bbf-7dbf-495a-afde-484b048d0737.parquet 2>&1 |\
+                grep -oE 'parquet.avro.schema.*' | cut -d ' ' -f 3- | jq .fields
+...
+  {
+    "name": "STARTDATE",
+    "type": [
+      "null",
+      "long"
+    ],
+    "default": null,
+    "columnName": "STARTDATE",
+    "sqlType": "93"
+  },
+...
+```
+
+It's possible to perform this conversion after the fact, but that's not ideal:
+
+```
+>>> df.STARTDATE = pd.to_datetime(df.STARTDATE, unit='ms')
+```
+
+I can't find a way of modifying the produce Parquet files' metadata to include the logical type.
