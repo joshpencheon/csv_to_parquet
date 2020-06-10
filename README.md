@@ -78,6 +78,8 @@ Similar to Postgres above, but some oddities with schemas means things only seem
 
 ## Issues
 
+### Epoch serialistation of dates
+
 It would appear that there's a [known issue](https://community.cloudera.com/t5/Support-Questions/SQOOP-IMPORT-map-column-hive-ignored/td-p/45369/page/2) with dates/times and outputting to parquet; they get imported as millisecond-since-epoch values:
 
 ```
@@ -117,3 +119,29 @@ $ sqoop import --map-column-java STARTDATE=String ...
 ```
 
 I can't find a way of modifying the produce Parquet files' metadata to include the logical type.
+
+### Repair of date
+
+It's possible to use Pandas to re-emit Parquet with a tweaked schema. For example:
+
+```
+>>> epoch_df = pd.read_parquet('/data/in/epoch.parquet')
+>>> epoch_df.STARTDATE = pd.to_datetime(epoch_df.STARTDATE, unit='ms').astype('datetime64[ms]')
+>>> epoch_df.to_parquet('/data/out/fixed.parquet')
+```
+
+Observe the logical annotation now on `STARTDATE`, but not on `ENDDATE`:
+
+```
+parquet-tools meta fixed.parquet | grep 'STARTDATE\|ENDDATE'
+STARTDATE:            OPTIONAL INT64 O:TIMESTAMP_MILLIS R:0 D:1
+ENDDATE:              OPTIONAL DOUBLE R:0 D:1
+```
+
+and similarly in Python:
+
+```
+pd.read_parquet('/data/out/zicd_d/fixed.parquet').dtypes['STARTDATE':'ENDDATE']
+STARTDATE    datetime64[ns]
+ENDDATE             float64
+```
