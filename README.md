@@ -8,6 +8,8 @@ It uses Python's `pandas` library to produce the Parquet files, which avoids the
 
 ## Usage
 
+### With docker:
+
 First, build a tagged image:
 ```
 docker build -t csv_to_parquet .
@@ -17,6 +19,17 @@ Then, put `.csv` files in `data/in/`, and run:
 docker run -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parquet:latest
 ```
 Output `.parquet` files will appear in `data/out/`.
+
+### Directly on host:
+
+This can be used outside of Docker too, although `input_dir` and `output_dir` may need tweaking in the `.py` file.
+
+```
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python csv_to_parquet.py
+```
 
 # Direct to Parquet, using Sqoop
 
