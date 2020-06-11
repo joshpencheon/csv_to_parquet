@@ -18,9 +18,13 @@ docker run -v $(pwd)/data/in:/data/in -v $(pwd)/data/out:/data/out csv_to_parque
 ```
 Output `.parquet` files will appear in `data/out/`.
 
-# Direct to Parquet
+# Direct to Parquet, using Sqoop
 
-You need JDBC dirvers available:
+At the current point in time, I'm not sold on Sqoop's advantages; it requires a more complex toolchain (alleviated by Docker), and one of its key USPs from our point of view (schema type mapping) appears flakey, at least with Oracle.
+
+## Setup:
+
+You need JDBC drivers available:
 
 ```
 $ ls /path/to/jdbc/
@@ -28,7 +32,7 @@ ojdbc6.jar
 postgresql-42.2.13.jar
 ```
 
-Use an imagine with Hadoop/Scoop already set up, mounting a destination directory:
+Use an image with Hadoop/Scoop already set up, mounting a destination directory:
 
 ```
 $ docker run -v /path/to/jdbc/:/jdbc -v /path/to/dest/:/parquet_out/ -it dvoros/sqoop:latest
@@ -147,3 +151,28 @@ ENDDATE             float64
 ```
 
 In practice, one might want to iterate over emitted parquet chunks, and perform the same repair on each.
+
+### Handling of NUMERIC and DECIMAL types from Oracle
+
+In Avro/Parquet, these types are supposed to be handled logically - if not, they default to coming back as a `String`. In theory, this behaviour should be toggable by setting the following options:
+
+```
+-D sqoop.avro.decimal_padding.enable=true
+-D sqoop.avro.logical_types.decimal.enable=true
+-D sqoop.parquet.logical_types.decimal.enable=true
+-D sqoop.avro.logical_types.decimal.default.precision=38
+-D sqoop.avro.logical_types.decimal.default.scale=10
+```
+
+However, I had zero luck trying to get any of this working, despite evidence that the `OracleManager` was definitely being used.
+
+The only practical workaround I could come up with was directly overriding the column mapping `--map-column-java EASTING=Integer`, which somewhat defeats the benefit of Sqoop.
+
+Code refs:
+
+```
+src/java/org/apache/sqoop/orm/AvroSchemaGenerator.java:85 (Schema generate)
+src/java/org/apache/sqoop/manager/ConnManager.java:189 (toAvroType)
+src/java/org/apache/sqoop/manager/oracle/OracleUtils.java:89 (toAvroLogicalType)
+src/java/org/apache/sqoop/orm/AvroSchemaGenerator.java:129 (toAvroSchema)
+```
