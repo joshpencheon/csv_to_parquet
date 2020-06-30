@@ -31,6 +31,12 @@ pip install -r requirements.txt
 python csv_to_parquet.py
 ```
 
+Outside of docker, if the Oracle client tools are available, it's possible to use the `cx_Oracle` package:
+
+```
+USERNAME= PASSWORD= DATABASE= TABLE= python oracle_to_parquet.py
+```
+
 # Direct to Parquet, using Sqoop
 
 At the current point in time, I'm not sold on Sqoop's advantages; it requires a more complex toolchain (alleviated by Docker), and one of its key USPs from our point of view (schema type mapping) appears flakey, at least with Oracle.
