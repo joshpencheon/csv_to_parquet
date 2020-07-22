@@ -33,12 +33,16 @@ type_map = {
     cx_Oracle.DB_TYPE_VARCHAR: pa.string()
 }
 
-def arrow_type_for(cx_oracle_type, precision, scale):
+def arrow_type_for(column_name, cx_oracle_type, precision, scale):
     """Maps Oracle column type to an Array type
 
     Primarily uses the defined type_map, but in the case of Oracle
     NUMBER columns will map to int/float/bool depending on precision and scale.
     """
+
+    # In the schema, these are bare NUMBER columns, so erroneously come back as floats.
+    if column_name in ['AVPID', 'TUMOUR_AVPID']:
+        return pa.int64()
 
     if cx_oracle_type == cx_Oracle.DB_TYPE_NUMBER:
         if scale == 0:
@@ -70,7 +74,7 @@ with connection.cursor() as cursor:
 
 print(cx_oracle_types)
 
-mapped_cols = [(col[0], arrow_type_for(col[1], col[4], col[5])) for col in cx_oracle_types]
+mapped_cols = [(col[0], arrow_type_for(col[0], col[1], col[4], col[5])) for col in cx_oracle_types]
 print(mapped_cols)
 
 parquet_schema = pa.schema(mapped_cols)
