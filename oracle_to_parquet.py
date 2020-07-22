@@ -81,9 +81,11 @@ parquet_schema = pa.schema(mapped_cols)
 print(parquet_schema)
 
 output_location = os.path.join(output_dir, ('%s.parquet' % table))
+total_rows = 0
 print("Output: ", output_location)
 with pq.ParquetWriter(output_location, parquet_schema, compression='snappy') as parquet_writer:
     for i, df in enumerate(pd.read_sql(query, connection, chunksize=sql_chunksize)):
         table = pa.Table.from_pandas(df, schema=parquet_schema)
         parquet_writer.write_table(table)
-        print("  - %s added" % len(df))
+        total_rows += len(df)
+        print("  - %d added" % total_rows)
