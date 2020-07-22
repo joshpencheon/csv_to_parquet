@@ -56,7 +56,7 @@ def arrow_type_for(column_name, cx_oracle_type, precision, scale):
         return type_map.get(cx_oracle_type)
 
 
-chunksize = 100_000
+sql_chunksize = 100_000
 output_dir = 'data/out'
 
 username = os.environ.get('USERNAME')
@@ -80,11 +80,10 @@ print(mapped_cols)
 parquet_schema = pa.schema(mapped_cols)
 print(parquet_schema)
 
-for i, df in enumerate(pd.read_sql(query, connection, chunksize=chunksize)):
-    print("  chunk", i)
-    output_location = os.path.join(output_dir, ('query-chunk-%d.parquet' % i))
-    print("Output: ", output_location)
-
-    with pq.ParquetWriter(output_location, parquet_schema, compression='snappy') as parquet_writer:
+output_location = os.path.join(output_dir, ('%s.parquet' % table))
+print("Output: ", output_location)
+with pq.ParquetWriter(output_location, parquet_schema, compression='snappy') as parquet_writer:
+    for i, df in enumerate(pd.read_sql(query, connection, chunksize=sql_chunksize)):
         table = pa.Table.from_pandas(df, schema=parquet_schema)
         parquet_writer.write_table(table)
+        print("  - %s added" % len(df))
